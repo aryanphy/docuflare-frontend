@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocuFlare</title>
+<script>
+const API = "https://docuflare-backend-production.up.railway.app";
+async function generate() {
+  const topic = document.getElementById('topic').value;
+  const duration = document.getElementById('duration').value;
+  const language = document.getElementById('language').value;
+  if (!topic) { alert('Topic likho!'); return; }
+  document.getElementById('btn').disabled = true;
+  document.getElementById('status').innerHTML = 'Generating...';
+  const res = await fetch(API + '/generate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({topic, duration: parseInt(duration), language, voice_style: 'documentary', music: 'cinematic', quality: '720p', ratio: '16:9', mode: 'auto'})
+  });
+  const data = await res.json();
+  const jobId = data.job_id;
+  const interval = setInterval(async () => {
+    const r = await fetch(API + '/status/' + jobId);
+    const s = await r.json();
+    document.getElementById('status').innerHTML = s.step + ' (' + s.progress + '%)';
+    if (s.status === 'done') {
+      clearInterval(interval);
+      document.getElementById('result').innerHTML = '<a href="' + s.video_url + '" download>Download Video</a>';
+      document.getElementById('btn').disabled = false;
+    } else if (s.status === 'failed') {
+      clearInterval(interval);
+      document.getElementById('status').innerHTML = 'Failed: ' + s.error;
+      document.getElementById('btn').disabled = false;
+    }
+  }, 3000);
+}
+</script>
+<style>
+body { font-family: sans-serif; background: #111; color: #fff; padding: 20px; }
+h1 { color: #C9A84C; }
+input, select { width: 100%; padding: 12px; margin: 8px 0; background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 16px; }
+button { width: 100%; padding: 16px; background: #C9A84C; color: #000; border: none; font-size: 18px; font-weight: bold; border-radius: 4px; margin-top: 16px; cursor: pointer; }
+#status { margin-top: 20px; color: #C9A84C; font-size: 16px; }
+#result { margin-top: 20px; }
+#result a { color: #C9A84C; font-size: 18px; }
+</style>
+</head>
+<body>
+<h1>DocuFlare 🎬</h1>
+<p>AI Documentary Generator</p>
+<input id="topic" placeholder="Topic likho... (e.g. Black Holes)" />
+<select id="duration">
+<option value="1">1 Minute</option>
+<option value="3" selected>3 Minutes</option>
+<option value="5">5 Minutes</option>
+</select>
+<select id="language">
+<option>English</option>
+<option>Hindi</option>
+<option>Hinglish</option>
+</select>
+<button id="btn" onclick="generate()">🎬 Generate Documentary</button>
+<div id="status"></div>
+<div id="result"></div>
+</body>
+</html>
